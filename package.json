@@ -1,0 +1,14 @@
+{
+  "name": "gitbye",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "execa": "^8.0.1",
+    "inquirer": "^9.2.11"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
