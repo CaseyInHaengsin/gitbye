@@ -1,11 +1,15 @@
 import inquirer from "inquirer";
+import path from "path";
+import fs from "fs";
 import { execa } from "execa";
 
-const CWD = "";
 
 async function main() {
-  const branches = await getBranches();
-
+  const { branches, dir } = await identifyCurrentDirectoryAndBranches()
+  if (!branches.length || branches.length === 0) {
+    console.log("No branches to delete");
+    return;
+  }
   inquirer
     .prompt([
       {
@@ -26,16 +30,51 @@ async function main() {
         toDelete.map(
           async (branch) =>
             await execa("git", ["branch", "-D", branch], {
-              cwd: CWD,
+              cwd: dir
             })
         )
       );
     });
 }
 
-async function getBranches() {
+async function identifyCurrentDirectoryAndBranches(){
+  const { directory }  = await inquirer.prompt([
+    {
+      type: "input",
+      name: "directory",
+      message: "What is the directory you want to delete branches in?",
+      default: "CWD"
+
+    }
+  ])
+  const dir = directory === 'CWD' || directory === '.'  ? process.cwd() : directory
+  const isGitRepo = await isGitRepository(dir);
+  if (!isGitRepo) {
+    throw new Error("Not a git repository");
+  }
+  const branches = await getBranches(dir);
+  return { branches, dir }
+
+}
+
+async function isGitRepository(dirPath) {
+  try {
+    const gitDirPath = path.join(dirPath, ".git");
+    const gitDirStat = fs.statSync(gitDirPath);
+    if (!gitDirStat.isDirectory()) {
+      return false;
+    }
+
+    await execa("git", ["status"], { cwd: dirPath });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function getBranches(cwd) {
   const { stdout: branches } = await execa("git", ["branch"], {
-    cwd: CWD,
+    cwd
   });
   return branches
     .split("\n")
@@ -45,4 +84,4 @@ async function getBranches() {
     );
 }
 
-main();
+await main();
